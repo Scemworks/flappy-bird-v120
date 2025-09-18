@@ -88,16 +88,20 @@ export default function FlappyBirdGame() {
       }
     };
 
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (["Space", "ArrowUp", "KeyW", " "].includes(e.code) || e.key === " ") {
+        onPress(e as unknown as Event);
+      }
+    };
+
     window.addEventListener("touchstart", onPress, { passive: false });
     window.addEventListener("mousedown", onPress);
-    window.addEventListener("keydown", (e) => {
-      if ([" ", "Spacebar", "ArrowUp", "KeyW"].includes((e as any).code) || e.key === " ") {
-        onPress(e);
-      }
-    });
+    window.addEventListener("keydown", onKeyDown);
+
     return () => {
       window.removeEventListener("touchstart", onPress as any);
       window.removeEventListener("mousedown", onPress as any);
+      window.removeEventListener("keydown", onKeyDown);
     };
   }, [state]);
 
