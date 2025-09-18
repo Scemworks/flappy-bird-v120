@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useAudio } from "@/hooks/useAudio";
+import MainMenu from "./ui/MainMenu";
+import OverlayHUD from "./ui/OverlayHUD";
+import GameOverOverlay from "./ui/GameOverOverlay";
 
 type SpriteMap = {
   bgDay: HTMLImageElement;
@@ -315,18 +318,14 @@ export default function FlappyBirdGame() {
   }
 
   return (
-    <div className="w-screen h-screen flex items-center justify-center touch-none select-none">
+    <div className="w-screen h-screen flex items-center justify-center touch-none select-none relative">
       <canvas ref={canvasRef} className="block rounded-xl shadow-lg bg-black" />
-      {/* Tap/Click hint overlay for accessibility */}
-      <button
-        className="sr-only"
-        aria-label={state === "menu" ? "Start game" : state === "playing" ? "Flap" : "Back to menu"}
-        onClick={() => {
-          if (state === "menu") startGame();
-          else if (state === "playing") flap();
-          else setState("menu");
-        }}
-      />
+      {state === "menu" && <MainMenu onStart={startGame} highscore={high} />}
+      {state === "playing" && <OverlayHUD score={score} />}
+      {state === "gameover" && (
+        <GameOverOverlay score={score} highscore={high} onRestart={() => setState("menu")} />
+      )}
+      <button className="sr-only" aria-label="hidden" />
     </div>
   );
 }
