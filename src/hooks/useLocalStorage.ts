@@ -3,19 +3,20 @@
 import { useEffect, useState } from "react";
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [stored, setStored] = useState<T>(initialValue);
+  // Lazily read once from localStorage to avoid clobbering an existing value on first mount
+  const [stored, setStored] = useState<T>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(key) : null;
+      return raw != null ? (JSON.parse(raw) as T) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
 
+  // Persist any changes
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(key);
-      if (raw != null) setStored(JSON.parse(raw));
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(key, JSON.stringify(stored));
+      window.localStorage.setItem(key, JSON.stringify(stored));
     } catch {}
   }, [key, stored]);
 

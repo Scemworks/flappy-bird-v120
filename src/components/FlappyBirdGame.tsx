@@ -51,7 +51,7 @@ function useSprites(): SpriteMap {
       digits: Array.from({ length: 10 }, (_, i) => loadImage(`/sprites/${i}.png`)),
       message: loadImage("/sprites/message.png"),
       gameover: loadImage("/sprites/gameover.png"),
-  retry: loadImage("/sprites/Retry.png"),
+      retry: loadImage("/sprites/Retry.png"),
     } satisfies SpriteMap;
   }, []);
   return sprites;
@@ -238,6 +238,11 @@ export default function FlappyBirdGame() {
         setScore((s) => {
           const ns = s + 1;
           scoreRef.current = ns;
+          // update highscore immediately when surpassed
+          if (ns > highRef.current) {
+            highRef.current = ns;
+            setHigh(ns);
+          }
           return ns;
         });
         play("point", 0.6);
@@ -300,19 +305,27 @@ export default function FlappyBirdGame() {
     if (state === "gameover") {
       // Game over banner
       ctx.drawImage(sprites.gameover, WORLD_WIDTH / 2 - sprites.gameover.width / 2, 120);
-      // Retry cue using dedicated Retry sprite and highscore centered above it
+      // Retry cue using dedicated Retry sprite, drawn smaller
       const retryY = 260;
-      ctx.drawImage(sprites.retry, WORLD_WIDTH / 2 - sprites.retry.width / 2, retryY);
-      drawSmallScoreCentered(ctx, highRef.current, WORLD_WIDTH / 2, retryY - 14, sprites.digits);
+      const retryScale = 0.2;
+      const rw = (sprites.retry.width || 200) * retryScale;
+      const rh = (sprites.retry.height || 60) * retryScale;
+      const rx = WORLD_WIDTH / 2 - rw / 2;
+      ctx.drawImage(sprites.retry, rx, retryY, rw, rh);
+  // Current score appears centered above the retry sprite
+  const digitScale = 1.2;
+  const digitH = (sprites.digits[0]?.height || 24) * digitScale;
+  const scoreY = retryY - digitH - 8;
+  drawDigitsCentered(ctx, scoreRef.current, WORLD_WIDTH / 2, scoreY, sprites.digits, digitScale);
     }
 
     // score
-    // current score (center top) using sprite digits
-    drawScore(ctx, scoreRef.current, WORLD_WIDTH / 2, 30, sprites.digits);
-    // highscore at top-right during menu/playing; hidden/moved during gameover
+    // current score (center top) using sprite digits (hide during gameover)
     if (state !== "gameover") {
-      drawSmallScore(ctx, highRef.current, WORLD_WIDTH - 10, 10, sprites.digits);
+      drawScore(ctx, scoreRef.current, WORLD_WIDTH / 2, 30, sprites.digits);
     }
+  // Highscore is always shown at top-right
+  drawSmallScore(ctx, highRef.current, WORLD_WIDTH - 10, 10, sprites.digits);
   }
 
   function drawScore(
@@ -350,22 +363,23 @@ export default function FlappyBirdGame() {
     }
   }
 
-  function drawSmallScoreCentered(
+  function drawDigitsCentered(
     ctx: CanvasRenderingContext2D,
     value: number,
     centerX: number,
     y: number,
-    digits: HTMLImageElement[]
+    digits: HTMLImageElement[],
+    scale = 1
   ) {
     const s = String(Math.max(0, value | 0));
     let total = 0;
-    for (let i = 0; i < s.length; i++) total += digits[+s[i]].width * 0.6 + 2;
+    for (let i = 0; i < s.length; i++) total += digits[+s[i]].width * scale + 2;
     total -= 2; // no trailing space
     let x = centerX - total / 2;
     for (let i = 0; i < s.length; i++) {
       const d = digits[+s[i]];
-      ctx.drawImage(d, x, y, d.width * 0.6, d.height * 0.6);
-      x += d.width * 0.6 + 2;
+      ctx.drawImage(d, x, y, d.width * scale, d.height * scale);
+      x += d.width * scale + 2;
     }
   }
 
