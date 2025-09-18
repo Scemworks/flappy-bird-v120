@@ -63,9 +63,18 @@ export default function FlappyBirdGame() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [state, setState] = useState<GameState>("menu");
   const [score, setScore] = useState(0);
+  const scoreRef = useRef(0);
   const [high, setHigh] = useLocalStorage<number>("fb_highscore", 0);
+  const highRef = useRef(0);
   const { play } = useAudio();
   const sprites = useSprites();
+  // keep refs in sync with state values for render-loop reads
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+  useEffect(() => {
+    highRef.current = high;
+  }, [high]);
 
   // world state (not triggering re-renders every frame)
   const bird = useRef({ x: 64, y: WORLD_HEIGHT / 2, vy: 0, frame: 0 });
@@ -106,6 +115,7 @@ export default function FlappyBirdGame() {
 
   function startGame() {
     setScore(0);
+  scoreRef.current = 0;
     bird.current = { x: 64, y: WORLD_HEIGHT / 2, vy: 0, frame: 0 };
     pipes.current = [];
     baseOffset.current = 0;
@@ -129,7 +139,11 @@ export default function FlappyBirdGame() {
   function resetToGameOver() {
     setState("gameover");
     play("die", 0.6);
-    setHigh((h) => (score > h ? score : h));
+    setHigh((h) => {
+      const nh = Math.max(scoreRef.current, h);
+      highRef.current = nh;
+      return nh;
+    });
   }
 
   // main loop
@@ -222,7 +236,11 @@ export default function FlappyBirdGame() {
       }
       if (!p.passed && p.x + 52 < bird.current.x) {
         p.passed = true;
-        setScore((s) => s + 1);
+        setScore((s) => {
+          const ns = s + 1;
+          scoreRef.current = ns;
+          return ns;
+        });
         play("point", 0.6);
       }
     }
@@ -285,9 +303,10 @@ export default function FlappyBirdGame() {
     }
 
     // score
-    drawScore(ctx, score, WORLD_WIDTH / 2, 30, sprites.digits);
-    // highscore small at top-right
-    drawSmallScore(ctx, high, WORLD_WIDTH - 10, 10, sprites.digits);
+  // current score (center top) using sprite digits
+  drawScore(ctx, scoreRef.current, WORLD_WIDTH / 2, 30, sprites.digits);
+  // highscore at top-right using sprite digits
+  drawSmallScore(ctx, highRef.current, WORLD_WIDTH - 10, 10, sprites.digits);
   }
 
   function drawScore(
