@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useAudio } from "@/hooks/useAudio";
 
@@ -83,39 +83,9 @@ export default function FlappyBirdGame() {
   const lastSpawn = useRef(0);
   const lastTime = useRef<number | null>(null);
 
-  // input handling
-  useEffect(() => {
-    const onPress = async (e: Event) => {
-      e.preventDefault();
-      // ensure audio ready on first interaction
-      await unlock();
-      if (state === "menu") {
-        await startGame();
-      } else if (state === "playing") {
-        flap();
-      } else if (state === "gameover") {
-        setState("menu");
-      }
-    };
+  // input handling (added below after startGame/flap declarations)
 
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (["Space", "ArrowUp", "KeyW", " "].includes(e.code) || e.key === " ") {
-        onPress(e as unknown as Event);
-      }
-    };
-
-    window.addEventListener("touchstart", onPress, { passive: false });
-    window.addEventListener("mousedown", onPress);
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      window.removeEventListener("touchstart", onPress as any);
-      window.removeEventListener("mousedown", onPress as any);
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [state]);
-
-  async function startGame() {
+  const startGame = useCallback(async () => {
     setScore(0);
     scoreRef.current = 0;
     bird.current = { x: 64, y: WORLD_HEIGHT / 2, vy: 0, frame: 0 };
@@ -127,12 +97,51 @@ export default function FlappyBirdGame() {
     // prefetch frequently used sounds for the session
     prefetch(["wing", "point", "hit", "die", "swoosh"]).catch(() => {});
     play("swoosh", 0.5);
-  }
+  }, [play, prefetch]);
 
-  function flap() {
+  const flap = useCallback(() => {
     bird.current.vy = FLAP_VELOCITY;
     play("wing", 0.5);
-  }
+  }, [play]);
+
+  // input handling
+  useEffect(() => {
+    const handlePress = async () => {
+      // ensure audio ready on first interaction
+      await unlock();
+      if (state === "menu") {
+        await startGame();
+      } else if (state === "playing") {
+        flap();
+      } else if (state === "gameover") {
+        setState("menu");
+      }
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      void handlePress();
+    };
+    const onMouseDown = (_e: MouseEvent) => {
+      void handlePress();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (["Space", "ArrowUp", "KeyW", " "].includes(e.code) || e.key === " ") {
+        e.preventDefault();
+        void handlePress();
+      }
+    };
+
+    window.addEventListener("touchstart", onTouchStart, { passive: false });
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [state, unlock, startGame, flap]);
 
   function spawnPipe() {
     const margin = 40;
@@ -151,6 +160,7 @@ export default function FlappyBirdGame() {
   }
 
   // main loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
