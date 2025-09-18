@@ -16,6 +16,7 @@ type SpriteMap = {
   digits: HTMLImageElement[];
   message: HTMLImageElement;
   gameover: HTMLImageElement;
+  retry: HTMLImageElement;
 };
 
 type GameState = "menu" | "playing" | "gameover";
@@ -50,6 +51,7 @@ function useSprites(): SpriteMap {
       digits: Array.from({ length: 10 }, (_, i) => loadImage(`/sprites/${i}.png`)),
       message: loadImage("/sprites/message.png"),
       gameover: loadImage("/sprites/gameover.png"),
+  retry: loadImage("/sprites/Retry.png"),
     } satisfies SpriteMap;
   }, []);
   return sprites;
@@ -298,9 +300,9 @@ export default function FlappyBirdGame() {
     if (state === "gameover") {
       // Game over banner
       ctx.drawImage(sprites.gameover, WORLD_WIDTH / 2 - sprites.gameover.width / 2, 120);
-      // Retry cue (reuse message sprite) and highscore centered above it
+      // Retry cue using dedicated Retry sprite and highscore centered above it
       const retryY = 260;
-      ctx.drawImage(sprites.message, WORLD_WIDTH / 2 - sprites.message.width / 2, retryY);
+      ctx.drawImage(sprites.retry, WORLD_WIDTH / 2 - sprites.retry.width / 2, retryY);
       drawSmallScoreCentered(ctx, highRef.current, WORLD_WIDTH / 2, retryY - 14, sprites.digits);
     }
 
