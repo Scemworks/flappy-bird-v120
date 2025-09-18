@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useAudio } from "@/hooks/useAudio";
 import MainMenu from "./ui/MainMenu";
-import OverlayHUD from "./ui/OverlayHUD";
 import GameOverOverlay from "./ui/GameOverOverlay";
 
 type SpriteMap = {
@@ -330,7 +329,7 @@ export default function FlappyBirdGame() {
     <div className="w-screen h-screen flex items-center justify-center touch-none select-none relative">
       <canvas ref={canvasRef} className="block rounded-xl shadow-lg bg-black" />
       {state === "menu" && <MainMenu onStart={startGame} highscore={high} />}
-      {state === "playing" && <OverlayHUD score={score} />}
+  {/* Score is drawn on-canvas using digit sprites */}
       {state === "gameover" && (
         <GameOverOverlay score={score} highscore={high} onRestart={() => setState("menu")} />
       )}
