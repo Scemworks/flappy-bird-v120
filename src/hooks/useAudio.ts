@@ -7,35 +7,44 @@ type SoundKey =
   | "swoosh"
   | "wing";
 
-const exts = [".ogg", ".wav"]; // try ogg first then wav
+const exts = [".ogg", ".wav"]; // prefer ogg then wav
 
-function makePool(srcs: string[], size = 4) {
-  const pool = Array.from({ length: size }, () => new Audio());
-  let i = 0;
-  const next = () => {
-    const a = pool[i];
-    i = (i + 1) % pool.length;
+function createAudioPool(srcBase: string, size = 4) {
+  const pool = Array.from({ length: size }, () => {
+    const a = new Audio();
+    // choose first extension; most browsers will handle
+    a.src = srcBase + exts[0];
+    a.preload = "auto";
     return a;
-  };
-  const setSrc = (el: HTMLAudioElement, base: string) => {
-    // pick the first source that can play
-    for (const s of srcs) {
-      el.src = base + s;
-      break; // browser can pick format automatically in most cases from file extension
-    }
-  };
-  return { next, setSrc };
+  });
+  let idx = 0;
+  return {
+    next() {
+      const a = pool[idx];
+      idx = (idx + 1) % pool.length;
+      return a;
+    },
+  } as const;
 }
 
 export function useAudio() {
   const base = "/audio/";
+  const pools: Record<SoundKey, ReturnType<typeof createAudioPool>> = {
+    die: createAudioPool(base + "die"),
+    hit: createAudioPool(base + "hit"),
+    point: createAudioPool(base + "point"),
+    swoosh: createAudioPool(base + "swoosh"),
+    wing: createAudioPool(base + "wing"),
+  };
+
   const play = (key: SoundKey, volume = 1) => {
-    const { next, setSrc } = makePool(exts);
-    const a = next();
-    setSrc(a, base + key);
+    const a = pools[key].next();
     a.volume = volume;
-    a.currentTime = 0;
+    try {
+      a.currentTime = 0;
+    } catch {}
     a.play().catch(() => {});
   };
+
   return { play } as const;
 }
