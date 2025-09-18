@@ -179,7 +179,8 @@ export default function FlappyBirdGame() {
 
   function update(dt: number) {
     // ground scroll
-    baseOffset.current = (baseOffset.current + PIPE_SPEED * dt) % 48; // base tile width
+    const baseW = sprites.base.width || 336;
+    baseOffset.current = (baseOffset.current + PIPE_SPEED * dt) % baseW;
 
     if (state !== "playing") return;
 
@@ -258,7 +259,8 @@ export default function FlappyBirdGame() {
 
     // ground/base repeats at bottom
     const baseY = WORLD_HEIGHT - GROUND_HEIGHT;
-    for (let x = -baseOffset.current; x < WORLD_WIDTH + 48; x += 48) {
+    const baseW2 = sprites.base.width || 336;
+    for (let x = -baseOffset.current; x < WORLD_WIDTH + baseW2; x += baseW2) {
       ctx.drawImage(sprites.base, x, baseY);
     }
 
