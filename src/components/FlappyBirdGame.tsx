@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useAudio } from "@/hooks/useAudio";
-import MainMenu from "./ui/MainMenu";
 import GameOverOverlay from "./ui/GameOverOverlay";
 
 type SpriteMap = {
@@ -66,7 +65,7 @@ export default function FlappyBirdGame() {
   const scoreRef = useRef(0);
   const [high, setHigh] = useLocalStorage<number>("fb_highscore", 0);
   const highRef = useRef(0);
-  const { play } = useAudio();
+  const { play, unlock, prefetch } = useAudio();
   const sprites = useSprites();
   // keep refs in sync with state values for render-loop reads
   useEffect(() => {
@@ -85,10 +84,12 @@ export default function FlappyBirdGame() {
 
   // input handling
   useEffect(() => {
-    const onPress = (e: Event) => {
+    const onPress = async (e: Event) => {
       e.preventDefault();
+      // ensure audio ready on first interaction
+      await unlock();
       if (state === "menu") {
-        startGame();
+        await startGame();
       } else if (state === "playing") {
         flap();
       } else if (state === "gameover") {
@@ -113,7 +114,7 @@ export default function FlappyBirdGame() {
     };
   }, [state]);
 
-  function startGame() {
+  async function startGame() {
     setScore(0);
   scoreRef.current = 0;
     bird.current = { x: 64, y: WORLD_HEIGHT / 2, vy: 0, frame: 0 };
@@ -122,6 +123,8 @@ export default function FlappyBirdGame() {
     lastSpawn.current = 0;
     lastTime.current = null;
     setState("playing");
+    // prefetch frequently used sounds for the session
+    prefetch(["wing", "point", "hit", "die", "swoosh"]).catch(() => {});
     play("swoosh", 0.5);
   }
 
@@ -234,7 +237,8 @@ export default function FlappyBirdGame() {
         play("hit", 0.6);
         return resetToGameOver();
       }
-      if (!p.passed && p.x + 52 < bird.current.x) {
+  // trigger score as the bird crosses the pipe center for better audio sync
+  if (!p.passed && p.x + 26 < bird.current.x) {
         p.passed = true;
         setScore((s) => {
           const ns = s + 1;
@@ -347,7 +351,7 @@ export default function FlappyBirdGame() {
   return (
     <div className="w-screen h-screen flex items-center justify-center touch-none select-none relative">
       <canvas ref={canvasRef} className="block rounded-xl shadow-lg bg-black" />
-      {state === "menu" && <MainMenu onStart={startGame} highscore={high} />}
+  {/* Menu UI removed: rely on sprite message.png with tap to start */}
   {/* Score is drawn on-canvas using digit sprites */}
       {state === "gameover" && (
         <GameOverOverlay score={score} highscore={high} onRestart={() => setState("menu")} />
