@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useAudio } from "@/hooks/useAudio";
-import GameOverOverlay from "./ui/GameOverOverlay";
 
 type SpriteMap = {
   bgDay: HTMLImageElement;
@@ -116,7 +115,7 @@ export default function FlappyBirdGame() {
 
   async function startGame() {
     setScore(0);
-  scoreRef.current = 0;
+    scoreRef.current = 0;
     bird.current = { x: 64, y: WORLD_HEIGHT / 2, vy: 0, frame: 0 };
     pipes.current = [];
     baseOffset.current = 0;
@@ -219,13 +218,6 @@ export default function FlappyBirdGame() {
     for (const p of pipes.current) {
       p.x -= PIPE_SPEED * dt;
     }
-    // cleanup off-screen
-    while (pipes.current.length && pipes.current[0].x < -52) {
-      pipes.current.shift();
-    }
-
-    // scoring and collision
-    const birdRect = { x: bird.current.x - 17, y: bird.current.y - 12, w: 34, h: 24 };
     for (const p of pipes.current) {
       const gapTop = p.top;
       const gapBottom = p.top + PIPE_GAP;
@@ -233,7 +225,8 @@ export default function FlappyBirdGame() {
       const topRect = { x: p.x, y: -1000, w: 52, h: gapTop + 1000 };
       // bottom pipe rect
       const botRect = { x: p.x, y: gapBottom, w: 52, h: 1000 };
-      if (rectsIntersect(birdRect, topRect) || rectsIntersect(birdRect, botRect)) {
+  const birdRect = { x: bird.current.x - 17, y: bird.current.y - 12, w: 34, h: 24 };
+  if (rectsIntersect(birdRect, topRect) || rectsIntersect(birdRect, botRect)) {
         play("hit", 0.6);
         return resetToGameOver();
       }
@@ -248,7 +241,7 @@ export default function FlappyBirdGame() {
         play("point", 0.6);
       }
     }
-
+    
     // ground collision
     if (bird.current.y + 12 >= WORLD_HEIGHT - GROUND_HEIGHT) {
       return resetToGameOver();
@@ -303,14 +296,21 @@ export default function FlappyBirdGame() {
       ctx.drawImage(sprites.message, WORLD_WIDTH / 2 - sprites.message.width / 2, 80);
     }
     if (state === "gameover") {
+      // Game over banner
       ctx.drawImage(sprites.gameover, WORLD_WIDTH / 2 - sprites.gameover.width / 2, 120);
+      // Retry cue (reuse message sprite) and highscore centered above it
+      const retryY = 260;
+      ctx.drawImage(sprites.message, WORLD_WIDTH / 2 - sprites.message.width / 2, retryY);
+      drawSmallScoreCentered(ctx, highRef.current, WORLD_WIDTH / 2, retryY - 14, sprites.digits);
     }
 
     // score
-  // current score (center top) using sprite digits
-  drawScore(ctx, scoreRef.current, WORLD_WIDTH / 2, 30, sprites.digits);
-  // highscore at top-right using sprite digits
-  drawSmallScore(ctx, highRef.current, WORLD_WIDTH - 10, 10, sprites.digits);
+    // current score (center top) using sprite digits
+    drawScore(ctx, scoreRef.current, WORLD_WIDTH / 2, 30, sprites.digits);
+    // highscore at top-right during menu/playing; hidden/moved during gameover
+    if (state !== "gameover") {
+      drawSmallScore(ctx, highRef.current, WORLD_WIDTH - 10, 10, sprites.digits);
+    }
   }
 
   function drawScore(
@@ -348,14 +348,31 @@ export default function FlappyBirdGame() {
     }
   }
 
+  function drawSmallScoreCentered(
+    ctx: CanvasRenderingContext2D,
+    value: number,
+    centerX: number,
+    y: number,
+    digits: HTMLImageElement[]
+  ) {
+    const s = String(Math.max(0, value | 0));
+    let total = 0;
+    for (let i = 0; i < s.length; i++) total += digits[+s[i]].width * 0.6 + 2;
+    total -= 2; // no trailing space
+    let x = centerX - total / 2;
+    for (let i = 0; i < s.length; i++) {
+      const d = digits[+s[i]];
+      ctx.drawImage(d, x, y, d.width * 0.6, d.height * 0.6);
+      x += d.width * 0.6 + 2;
+    }
+  }
+
   return (
     <div className="w-screen h-screen flex items-center justify-center touch-none select-none relative">
       <canvas ref={canvasRef} className="block rounded-xl shadow-lg bg-black" />
   {/* Menu UI removed: rely on sprite message.png with tap to start */}
   {/* Score is drawn on-canvas using digit sprites */}
-      {state === "gameover" && (
-        <GameOverOverlay score={score} highscore={high} onRestart={() => setState("menu")} />
-      )}
+  {/* GameOver UI removed; tap to return to menu */}
       <button className="sr-only" aria-label="hidden" />
     </div>
   );
