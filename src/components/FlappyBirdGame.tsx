@@ -159,7 +159,10 @@ export default function FlappyBirdGame() {
     onResize();
     window.addEventListener("resize", onResize);
 
-    const loop = (t: number) => {
+  // Crisp pixel art
+  ctx.imageSmoothingEnabled = false;
+
+  const loop = (t: number) => {
       if (lastTime.current == null) lastTime.current = t;
       const dt = Math.min(33, t - lastTime.current) / 1000; // cap delta
       lastTime.current = t;
