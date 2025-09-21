@@ -29,6 +29,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#4ec0ca" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white overflow-hidden`}
